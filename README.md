@@ -1,10 +1,23 @@
-# Cyclone's Metamask Vault Decryptor
+# Metamask Vault Decryptor
 ### POC tool to decrypt metamask vault wallets
 _**This tool is proudly the first publicly released Metamask Vault decryptor / cracker to support the new Metamask wallet vaults which have a dynamic iteration**_
 
-_Tool will be superseded by hashcat once a custom hashcat kernel is released_
+_`Metamask Vault Decryptor` will be superseded by hashcat once a custom hashcat kernel is released. However, `Metamask Vault Decryptor` also displays the seed phrase alongside the vault password, which hashcat does not currently support._
+```
+./metamask_decryptor_amd64.bin -h metamask_json.txt -w wordlist.txt
+ ------------------------------------ 
+| Cyclone's Metamask Vault Decryptor |
+ ------------------------------------ 
 
-Supports previous Metamask vaults as well as the new vaults with "KeyMetadata"
+Vault file:     metamask_json.txt
+Valid Vaults:   1
+CPU Threads:    16
+Wordlist:       wordlist.txt
+Working...
+
+Decrypted: 0/1  5430.89 h/s     00h:01m:00s
+```
+Supports previous Metamask vaults as well as new vaults with "KeyMetadata" which have dynamic iterations
 
 ### Example vaults supported:
 - Old vault format: `{"data": "","iv": "","salt": ""}`
