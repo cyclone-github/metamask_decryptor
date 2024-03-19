@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -37,6 +38,9 @@ v0.2.0-2024-02-29
     in reference to https://github.com/cyclone-github/metamask_decryptor/issues/1
 	added multi-threading support
 	added stats printout
+v0.2.1-2024-03-19
+	fixed https://github.com/cyclone-github/metamask_decryptor/issues/2
+	added support for decrypting vaults linked to a hardware wallet
 
 TO-DO:
 	add ETA
@@ -60,7 +64,7 @@ func clearScreen() {
 
 // version func
 func versionFunc() {
-	fmt.Fprintln(os.Stderr, "Cyclone's Metamask Vault Decryptor v0.2.0-2024-02-29\nhttps://github.com/cyclone-github/metamask_decryptor\n")
+	fmt.Fprintln(os.Stderr, "Cyclone's Metamask Vault Decryptor v0.2.1-2024-03-19\nhttps://github.com/cyclone-github/metamask_decryptor\n")
 }
 
 // help func
@@ -103,7 +107,7 @@ type KeyParams struct {
 type Vault struct {
 	Type string `json:"type"`
 	Data struct {
-		Mnemonic []byte `json:"mnemonic"` // seed phrase
+		Mnemonic interface{} `json:"mnemonic"` // seed phrase can be a string or array of numbers
 	} `json:"data"`
 }
 
@@ -135,17 +139,35 @@ func decryptVault(password string, vault *MetamaskVault) bool {
 
 	var vaultData []Vault
 	if err := json.Unmarshal(decryptedData, &vaultData); err != nil {
-		return false
+		// if json unmarshal fails, use regex to find mnemonic in decrypted data
+		regex := regexp.MustCompile(`"mnemonic":"([^"]+)"`)
+		matches := regex.FindStringSubmatch(string(decryptedData))
+		if len(matches) > 1 {
+			fmt.Printf("\nDecrypted Vault: '%.64s...'\nSeed Phrase:\t'%s'\nVault Password: '%s'\n", fmt.Sprintf("%v", *vault), matches[1], password)
+		} else { // if regex also fails to find mnemonic in decrypted data, print entire decrypted string
+			fmt.Printf("\nDecryption successful but JSON unmarshaling failed\nDecrypted String: '%s...'\nVault Password: '%s'\n", string(decryptedData), password)
+		}
+		return true
 	}
 
 	for _, v := range vaultData {
-		if len(v.Data.Mnemonic) > 0 {
-			//fmt.Printf("\nDecrypted Vault: '%s'\nSeed Phrase:\t'%s'\nVault Password:\t'%s'\n", *vault, string(v.Data.Mnemonic), password) // print out full vault json
-			fmt.Printf("\nDecrypted Vault: '%.64s...'\nSeed Phrase:\t'%s'\nVault Password:\t'%s'\n", fmt.Sprintf("%v", *vault), string(v.Data.Mnemonic), password) // only print out first 64 char of vault json
-			return true
+		mnemonic, isString := v.Data.Mnemonic.(string)
+		if isString {
+			if len(mnemonic) > 0 {
+				fmt.Printf("\nDecrypted Vault: '%.64s...'\nSeed Phrase:\t'%s'\nVault Password:\t'%s'\n", fmt.Sprintf("%v", *vault), mnemonic, password)
+				return true
+			}
+		} else if mnemonicSlice, isArray := v.Data.Mnemonic.([]interface{}); isArray {
+			mnemonicStr := make([]byte, len(mnemonicSlice))
+			for i, val := range mnemonicSlice {
+				mnemonicStr[i] = byte(val.(float64))
+			}
+			if len(mnemonicStr) > 0 {
+				fmt.Printf("\nDecrypted Vault: '%.64s...'\nSeed Phrase:\t'%s'\nVault Password:\t'%s'\n", fmt.Sprintf("%v", *vault), string(mnemonicStr), password)
+				return true
+			}
 		}
 	}
-
 	return false
 }
 
