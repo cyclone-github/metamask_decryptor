@@ -1,3 +1,4 @@
+[![Readme Card](https://github-readme-stats.vercel.app/api/pin/?username=cyclone-github&repo=metamask_decryptor&theme=gruvbox)](https://github.com/cyclone-github/)
 # Metamask Vault Decryptor
 ### POC tool to decrypt metamask vault wallets
 _**This tool is proudly the first publicly released Metamask Vault decryptor / cracker to support the new Metamask wallet vaults which have a dynamic iteration.**_
